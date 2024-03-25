@@ -1,0 +1,75 @@
+```{r, include = TRUE, warning = FALSE, message=FALSE}
+# Load required libraries
+library(readxl)
+library(dplyr)
+
+# Define the file path
+file_path <- "C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/egrid_total_data.xlsx"
+
+# Read the Excel file
+egrid_data <- readxl::read_excel(file_path)
+
+# Convert columns to numeric
+numeric_cols <- c(
+  "Plant annual coal net generation (MWh)",
+  "Plant annual oil net generation (MWh)",
+  "Plant annual gas net generation (MWh)",
+  "Plant annual nuclear net generation (MWh)",
+  "Plant annual hydro net generation (MWh)",
+  "Plant annual biomass net generation (MWh)",
+  "Plant annual wind net generation (MWh)",
+  "Plant annual solar net generation (MWh)",
+  "Plant annual geothermal net generation (MWh)",
+  "Plant annual other fossil net generation (MWh)",
+  "Plant annual other unknown/ purchased fuel net generation (MWh)",
+  "Plant annual total nonrenewables net generation (MWh)",
+  "Plant annual total renewables net generation (MWh)"
+)
+
+egrid_data[numeric_cols] <- lapply(egrid_data[numeric_cols], as.numeric)
+
+# Task 1: Filter out all counties in the 'Plant county name' column that are 'Allegheny'
+filtered_data <- egrid_data %>%
+  filter(`Plant county name` == "Allegheny")
+
+# Task 2: Total the following based on year
+total_data <- egrid_data %>%
+  group_by(`Data Year`) %>%
+  summarise(
+    `Plant annual coal net generation (MWh)` = sum(`Plant annual coal net generation (MWh)`, na.rm = TRUE),
+    `Plant annual oil net generation (MWh)` = sum(`Plant annual oil net generation (MWh)`, na.rm = TRUE),
+    `Plant annual gas net generation (MWh)` = sum(`Plant annual gas net generation (MWh)`, na.rm = TRUE),
+    `Plant annual nuclear net generation (MWh)` = sum(`Plant annual nuclear net generation (MWh)`, na.rm = TRUE),
+    `Plant annual hydro net generation (MWh)` = sum(`Plant annual hydro net generation (MWh)`, na.rm = TRUE),
+    `Plant annual biomass net generation (MWh)` = sum(`Plant annual biomass net generation (MWh)`, na.rm = TRUE),
+    `Plant annual wind net generation (MWh)` = sum(`Plant annual wind net generation (MWh)`, na.rm = TRUE),
+    `Plant annual solar net generation (MWh)` = sum(`Plant annual solar net generation (MWh)`, na.rm = TRUE),
+    `Plant annual geothermal net generation (MWh)` = sum(`Plant annual geothermal net generation (MWh)`, na.rm = TRUE),
+    `Plant annual other fossil net generation (MWh)` = sum(`Plant annual other fossil net generation (MWh)`, na.rm = TRUE),
+    `Plant annual other unknown/ purchased fuel net generation (MWh)` = sum(`Plant annual other unknown/ purchased fuel net generation (MWh)`, na.rm = TRUE),
+    `Plant annual total nonrenewables net generation (MWh)` = sum(`Plant annual total nonrenewables net generation (MWh)`, na.rm = TRUE),
+    `Plant annual total renewables net generation (MWh)` = sum(`Plant annual total renewables net generation (MWh)`, na.rm = TRUE)
+  )
+
+library(ggplot2)
+
+ggplot(total_data, aes(x = `Data Year`), width = 600, height = 80) +
+  geom_line(aes(y = `Plant annual coal net generation (MWh)`, color = "Coal")) +
+  geom_line(aes(y = `Plant annual oil net generation (MWh)`, color = "Oil")) +
+  geom_line(aes(y = `Plant annual gas net generation (MWh)`, color = "Gas")) +
+  geom_line(aes(y = `Plant annual nuclear net generation (MWh)`, color = "Nuclear")) +
+  geom_line(aes(y = `Plant annual hydro net generation (MWh)`, color = "Hydro")) +
+  geom_line(aes(y = `Plant annual biomass net generation (MWh)`, color = "Biomass")) +
+  geom_line(aes(y = `Plant annual wind net generation (MWh)`, color = "Wind")) +
+  geom_line(aes(y = `Plant annual solar net generation (MWh)`, color = "Solar")) +
+  geom_line(aes(y = `Plant annual geothermal net generation (MWh)`, color = "Geothermal")) +
+  geom_line(aes(y = `Plant annual other fossil net generation (MWh)`, color = "Other Fossil")) +
+  geom_line(aes(y = `Plant annual other unknown/ purchased fuel net generation (MWh)`, color = "Other Unknown/Purchased Fuel")) +
+  geom_line(aes(y = `Plant annual total nonrenewables net generation (MWh)`, color = "Total Nonrenewables")) +
+  geom_line(aes(y = `Plant annual total renewables net generation (MWh)`, color = "Total Renewables")) +
+  labs(title = "Electricity Generation by Year and Generation Type",
+       x = "Year",
+       y = "Total Generation (MWh)",
+       color = "Generation Type") +
+  theme_minimal()
+```
