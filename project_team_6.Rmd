@@ -1,11 +1,12 @@
 ---
-title: "Final Group Project: Updated Checkpoint Submission"
+title: 'Final Group Project: 19-706: Air Quality Modeling: Using Data to Explore the links between PM2.5 with Electricity 
+generation and Transportation, individually'
 author: "Group 6 - Harsh, Nick, Rahul, Dhruv"
 date: "`r Sys.Date()`"
-output: pdf_document
-header-includes:
-  \usepackage{fvextra}
-  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+output:
+  pdf_document: default
+  word_document: default
+header-includes: \usepackage{fvextra} \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
 ---
 
 #Data Preparation and Cleaning, along with Exploratory Data Analysis
@@ -13,18 +14,21 @@ header-includes:
 ```{r}
 library(dplyr)
 library(knitr)
+library(conflicted)  
 library(tidyverse)
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
 
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 #Store all PM2.5 Data for all counties
 
-PM2.5_2016 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/daily_88101_2016.csv")
-PM2.5_2018 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/daily_88101_2018.csv")
-PM2.5_2019 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/daily_88101_2019.csv")
-PM2.5_2020 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/daily_88101_2020.csv")
-PM2.5_2021 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/daily_88101_2021.csv")
-PM2.5_2022 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/daily_88101_2022.csv")
+PM2.5_2016 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/daily_88101_2016.csv")
+PM2.5_2018 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/daily_88101_2018.csv")
+PM2.5_2019 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/daily_88101_2019.csv")
+PM2.5_2020 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/daily_88101_2020.csv")
+PM2.5_2021 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/daily_88101_2021.csv")
+PM2.5_2022 <- read.csv("C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/daily_88101_2022.csv")
 
 #Extract year from date format in the CSV (MM/DD/YYYY) and group by year
 
@@ -106,7 +110,8 @@ ggplot(data = TotalAvg_PM2.5) +
 
 #eGRID Data
 ``` {r}
-df <- "C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 Data/egrid_total_data.xlsx"
+library(tidyverse)
+df <- "C:/Users/Harsh Vaibhav/Desktop/Data Science Data Sets/Final/PM2.5 and egrid Data/egrid_total_data.xlsx"
 
 egrid_data <- readxl::read_excel(df)
 
@@ -204,9 +209,10 @@ PM2.5 <- County_PM2.5_Energy_Data$PM2.5_Avg
 NonRenewableEnergy <- County_PM2.5_Energy_Data$`Plant annual total nonrenewables net generation (MWh)`/10^6
 RenewableEnergy <- County_PM2.5_Energy_Data$`Plant annual total renewables net generation (MWh)`/10^6
 CountyName <- County_PM2.5_Energy_Data$County.Name
+Geothermal <- County_PM2.5_Energy_Data$`Plant annual geothermal net generation (MWh)`
 Year <- County_PM2.5_Energy_Data$Year
 
-Total_Energy <- lm(PM2.5 ~ NonRenewableEnergy + RenewableEnergy + Geothermal + factor(Year) + factor(CountyName))
+Total_Energy <- lm(PM2.5 ~ NonRenewableEnergy + RenewableEnergy + factor(Year) + factor(CountyName))
 summary(Total_Energy)
 
 ggplot()+
@@ -234,7 +240,6 @@ Source_Energy <- lm(PM2.5 ~ Geothermal + factor(Year)+ factor(CountyName))
 summary(Source_Energy)
 
 County_PM2.5_Energy_Data %>% filter(`Plant annual geothermal net generation (MWh)` > 0) %>% summary(`Plant annual geothermal net generation (MWh)`)
-
 
 ```
 By running the linear regression of PM2.5 on type (renewable/non renewable) of generation, we get inconclusive results. The standard deviation of both the input variables, Non Renewable Energy and Renewable Energy, is too high for us to make anything of these results. This may very well be due to the restricted and limited number of years this regression is being carried out for.
@@ -291,6 +296,7 @@ ggplot(County_PM2.5_Transportation_Data %>%
 
 #Model 1: Linear Regression
 ```{r}
+County_PM2.5_Transportation_Data <- na.omit(County_PM2.5_Transportation_Data)
 PM2.5_Avg <- County_PM2.5_Transportation_Data$PM2.5_Avg
 Gas <- County_PM2.5_Transportation_Data$GAS
 Diesel <- County_PM2.5_Transportation_Data$DIESEL
@@ -374,11 +380,9 @@ predicted_PM2.5 <- predict(Diesel_Cars, newdata = data.frame(DIESEL = c(20091, 2
 difference <- predicted_PM2.5[2] - predicted_PM2.5[1]
 print(difference)
 
-
 #k-fold Cross validation
 # Load the caret package
 library(caret)
-County_PM2.5_Transportation_Data <- na.omit(County_PM2.5_Transportation_Data)
 
 # Define the number of folds for cross-validation
 num_folds <- 10
@@ -416,8 +420,6 @@ Diesel_Cars_cv <- train(PM2.5_Avg ~ DIESEL + factor(COUNTY) + factor(YEAR),
 
 # Print the results
 print(Diesel_Cars_cv)
-
-
 
 # Visualizing Gas vs. PM2.5_Avg with color based on year
 ggplot(County_PM2.5_Transportation_Data) +
@@ -479,10 +481,11 @@ print(mse_all)
 ```
 #Model 3: Lasso
 ```{r}
+library(glmnet)
 
 # Prepare the predictor matrix
-x_all <- model.matrix(~ DIESEL + factor(COUNTY) + factor(YEAR), data = County_PM2.5_Transportation_Data1)
-y_all <- County_PM2.5_Transportation_Data1$PM2.5_Avg
+x_all <- model.matrix(~ DIESEL + factor(COUNTY) + factor(YEAR), data = County_PM2.5_Transportation_Data)
+y_all <- County_PM2.5_Transportation_Data$PM2.5_Avg
 
 # Perform cross-validated lasso regression
 lasso_model_all <- cv.glmnet(x_all, y_all, alpha = 1)
@@ -496,7 +499,7 @@ coefficients_all <- coef(final_model_all)
 predicted_PM2.5_all <- predict(final_model_all, newx = x_all)
 
 # Calculate mean squared error
-mse_all <- mean((predicted_PM2.5_all - y)^2)
+mse_all <- mean((predicted_PM2.5_all - y_all)^2)
 
 # Print results
 print(coefficients_all)
