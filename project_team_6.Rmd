@@ -8,18 +8,6 @@ header-includes:
   \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
 ---
 
-# Introduction
-
-Background and Stuff
-
-# Research question 
-
-The following are our research questions (with scope of further improvement), with some of them complete and some of them slated for future work.
-1. What is the relationship between PM2.5 and electricity generation in counties?
-2. Of the emissions that come from electricity generation, what are the most significant in contributing to CO2e?
-3. What does the introduction of the transportation sector to explore PM2.5 links look like?
-4. Analyzing impact of electricity generation related emissions for counties (future work). This impact can be related to biodiversity, income etc. Will discuss with TA for clarity.
-
 #Data Preparation and Cleaning, along with Exploratory Data Analysis
 #PM2.5 Data
 ```{r}
@@ -207,26 +195,18 @@ combined_df <- bind_rows(Filtered_county_2016, Filtered_county_2018, Filtered_co
 County_PM2.5_Energy_Data <- merge(combined_df, Filtered_county_energy, by = c("County.Name", "Year"))
 ```
 
-# Feature Selection
-Before building models, we identify the most relevant features for predicting our target variable.
-
-```{r}
-
-#Feature selection is not applicable to the current stage the project is in.
-
-```
-
 # Model Building
 
-#Electricity Model 1: Electricity and PM2.5
+#Electricity Model 1: Linear Regression
 ```{r}
 
 PM2.5 <- County_PM2.5_Energy_Data$PM2.5_Avg
-NonRenewableEnergy <- County_PM2.5_Energy_Data$`Plant annual total nonrenewables net generation (MWh)`
-RenewableEnergy <- County_PM2.5_Energy_Data$`Plant annual total renewables net generation (MWh)`
+NonRenewableEnergy <- County_PM2.5_Energy_Data$`Plant annual total nonrenewables net generation (MWh)`/10^6
+RenewableEnergy <- County_PM2.5_Energy_Data$`Plant annual total renewables net generation (MWh)`/10^6
 CountyName <- County_PM2.5_Energy_Data$County.Name
+Year <- County_PM2.5_Energy_Data$Year
 
-Total_Energy <- lm(PM2.5 ~ NonRenewableEnergy + RenewableEnergy + factor(CountyName))
+Total_Energy <- lm(PM2.5 ~ NonRenewableEnergy + RenewableEnergy + Geothermal + factor(Year) + factor(CountyName))
 summary(Total_Energy)
 
 ggplot()+
@@ -239,19 +219,23 @@ ggplot()+
 
 
 PM2.5 <- County_PM2.5_Energy_Data$PM2.5_Avg
-Coal <- County_PM2.5_Energy_Data$`Plant annual coal net generation (MWh)`
-Oil <- County_PM2.5_Energy_Data$`Plant annual oil net generation (MWh)`
-NGas <- County_PM2.5_Energy_Data$`Plant annual gas net generation (MWh)`
-Nuclear <- County_PM2.5_Energy_Data$`Plant annual nuclear net generation (MWh)`
-Hydro <- County_PM2.5_Energy_Data$`Plant annual biomass net generation (MWh)`
-Wind <- County_PM2.5_Energy_Data$`Plant annual wind net generation (MWh)`
-Biomass <- County_PM2.5_Energy_Data$`Plant annual biomass net generation (MWh)`
-Solar <- County_PM2.5_Energy_Data$`Plant annual solar net generation (MWh)`
-Geothermal <- County_PM2.5_Energy_Data$`Plant annual geothermal net generation (MWh)`
+Coal <- County_PM2.5_Energy_Data$`Plant annual coal net generation (MWh)`/10^6
+Oil <- County_PM2.5_Energy_Data$`Plant annual oil net generation (MWh)`/10^6
+NGas <- County_PM2.5_Energy_Data$`Plant annual gas net generation (MWh)`/10^6
+Nuclear <- County_PM2.5_Energy_Data$`Plant annual nuclear net generation (MWh)`/10^6
+Hydro <- County_PM2.5_Energy_Data$`Plant annual biomass net generation (MWh)`/10^6
+Wind <- County_PM2.5_Energy_Data$`Plant annual wind net generation (MWh)`/10^6
+Biomass <- County_PM2.5_Energy_Data$`Plant annual biomass net generation (MWh)`/10^6
+Solar <- County_PM2.5_Energy_Data$`Plant annual solar net generation (MWh)`/10^6
+Geothermal <- County_PM2.5_Energy_Data$`Plant annual geothermal net generation (MWh)`/10^6
 CountyName <- County_PM2.5_Energy_Data$County.Name
 
-Source_Energy <- lm(PM2.5 ~ Coal + Oil + NGas + Nuclear + Hydro + Wind + Solar + Biomass + Geothermal + factor(CountyName))
+Source_Energy <- lm(PM2.5 ~ Geothermal + factor(Year)+ factor(CountyName))
 summary(Source_Energy)
+
+County_PM2.5_Energy_Data %>% filter(`Plant annual geothermal net generation (MWh)` > 0) %>% summary(`Plant annual geothermal net generation (MWh)`)
+
+
 ```
 By running the linear regression of PM2.5 on type (renewable/non renewable) of generation, we get inconclusive results. The standard deviation of both the input variables, Non Renewable Energy and Renewable Energy, is too high for us to make anything of these results. This may very well be due to the restricted and limited number of years this regression is being carried out for.
 
@@ -318,19 +302,14 @@ CompGas <- County_PM2.5_Transportation_Data$COMP.GAS
 FlexFuel <- County_PM2.5_Transportation_Data$FLEX.FUEL
 Vehicles <- County_PM2.5_Transportation_Data$VEHICLES
 PACounty <- County_PM2.5_Transportation_Data$COUNTY
+Year <- County_PM2.5_Transportation_Data$YEAR
 
-# Fit the linear regression model
-emission_significance_transport <- lm(PM2.5_Avg ~ Gas + Diesel + Electric + Propane + Hybrid + NaturalGas + CompGas + FlexFuel + factor(PACounty), data = County_PM2.5_Transportation_Data)
+# Fit the linear regression model 
+emission_significance_transport <- lm(PM2.5_Avg ~ Diesel + factor(PACounty) + factor (Year), data = County_PM2.5_Transportation_Data)
 summary(emission_significance_transport)
 
-emission_significance_transport1 <- lm(PM2.5_Avg ~ Diesel + FlexFuel + factor(PACounty))
-summary(emission_significance_transport1)
-
-emission_significance_transport2 <- lm(PM2.5_Avg ~ Diesel + factor(PACounty))
-summary(emission_significance_transport2)
-
-emission_significance_transport3 <- lm(PM2.5_Avg ~ FlexFuel + factor(PACounty))
-summary(emission_significance_transport3)
+emission_significance_transport <- lm(PM2.5_Avg ~ Gas + Diesel + Electric + Propane + Hybrid + NaturalGas + CompGas + FlexFuel + factor(PACounty), data = County_PM2.5_Transportation_Data)
+summary(emission_significance_transport)
 
 # Set seed for reproducibility
 set.seed(123)
@@ -338,31 +317,37 @@ set.seed(123)
 # Generate random indices for splitting data into train and test sets
 train_indices <- sample(1:nrow(County_PM2.5_Transportation_Data), 0.8 * nrow(County_PM2.5_Transportation_Data))
 
-# Create train and test datasets
+# Create train and test data sets
 train_data <- County_PM2.5_Transportation_Data[train_indices, ]
 test_data <- County_PM2.5_Transportation_Data[-train_indices, ]
 
-# Case 1: Looking at all the vehicles 
+# Case 1: Looking at all the vehicles
 # Train the model on the entire data-set
-AllVehicles <- lm(PM2.5_Avg ~ VEHICLES + factor(COUNTY), data = train_data)
+AllVehicles <- lm(PM2.5_Avg ~ VEHICLES + factor(COUNTY) + factor(YEAR), data = train_data)
 summary(AllVehicles)
 
+# Calculate MSE
+predicted_PM2.5_allvehicles <- predict(AllVehicles, newdata = test_data)
+mse_allegheny_all <- mean((predicted_PM2.5_allvehicles - test_data$PM2.5_Avg)^2)
+print(mse_allegheny_all)
+
 # Predict PM2.5 levels for different number of cars in Allegheny County
-predicted_PM2.5 <- predict(AllVehicles, newdata = data.frame(VEHICLES = c(855788, 855789), COUNTY = "Allegheny"))
+predicted_PM2.5 <- predict(AllVehicles, newdata = data.frame(VEHICLES = c(855788, 855789), COUNTY = "Allegheny", YEAR = "2022"))
 
 # Calculate PM2.5 values for an addition of 1 car
 difference <- predicted_PM2.5[2] - predicted_PM2.5[1]
 print(difference)
 
-# Calculate MSE
-predicted_PM2.5_allegheny_all <- predict(AllVehicles, newdata = test_data)
-mse_allegheny_all <- mean((predicted_PM2.5_allegheny_all - test_data$PM2.5_Avg)^2)
-print(mse_allegheny_all)
 
 # Case 2: Looking specifically at Gas, Diesel and Electric Vehicles
 # Train the model on the entire data-set
-GDE <- lm(PM2.5_Avg ~ GAS + DIESEL + ELECTRIC + factor(COUNTY), data = train_data)
+GDE <- lm(PM2.5_Avg ~ GAS + DIESEL + ELECTRIC + factor(COUNTY)+ factor(YEAR), data = train_data)
 summary(GDE)
+
+# Calculate MSE
+predicted_PM2.5_allegheny_GDE <- predict(GDE, newdata = test_data)
+mse_allegheny_GDE <- mean((predicted_PM2.5_allegheny_GDE - test_data$PM2.5_Avg)^2, na.rm=TRUE)
+print(mse_allegheny_GDE)
 
 # Predict PM2.5 levels for different number of cars in Allegheny County
 predicted_PM2.5 <- predict(GDE, newdata = data.frame(GAS = c(811383, 811384), DIESEL = c(20091, 20092), ELECTRIC = c(4574,4575), COUNTY = "Allegheny"))
@@ -371,15 +356,16 @@ predicted_PM2.5 <- predict(GDE, newdata = data.frame(GAS = c(811383, 811384), DI
 difference <- predicted_PM2.5[2] - predicted_PM2.5[1]
 print(difference)
 
-# Calculate MSE
-predicted_PM2.5_allegheny_GDE <- predict(GDE, newdata = test_data)
-mse_allegheny_GDE <- mean((predicted_PM2.5_allegheny_GDE - test_data$PM2.5_Avg)^2, na.rm=TRUE)
-print(mse_allegheny_GDE)
 
 # Case 3: Looking specifically at Diesel Vehicles
 # Train the model on the entire data-set
-Diesel_Cars <- lm(PM2.5_Avg ~ DIESEL + factor(COUNTY), data = train_data)
+Diesel_Cars <- lm(PM2.5_Avg ~ DIESEL + factor(COUNTY) + factor(YEAR), data = train_data)
 summary(Diesel_Cars)
+
+# Calculate MSE
+predicted_PM2.5_allegheny_diesel <- predict(Diesel_Cars, newdata = test_data)
+mse_allegheny_diesel <- mean((predicted_PM2.5_allegheny_diesel - test_data$PM2.5_Avg)^2)
+print(mse_allegheny_diesel)
 
 # Predict PM2.5 levels for different number of cars in Allegheny County
 predicted_PM2.5 <- predict(Diesel_Cars, newdata = data.frame(DIESEL = c(20091, 20092), COUNTY = "Allegheny"))
@@ -387,12 +373,6 @@ predicted_PM2.5 <- predict(Diesel_Cars, newdata = data.frame(DIESEL = c(20091, 2
 # Calculate the difference between predicted PM2.5 values to get the PM2.5 for an addition of 1 diesel car
 difference <- predicted_PM2.5[2] - predicted_PM2.5[1]
 print(difference)
-
-# Calculate MSE
-predicted_PM2.5_allegheny_diesel <- predict(Diesel_Cars, newdata = test_data)
-mse_allegheny_diesel <- mean((predicted_PM2.5_allegheny_diesel - test_data$PM2.5_Avg)^2)
-print(mse_allegheny_diesel)
-
 
 
 # Visualizing Gas vs. PM2.5_Avg with color based on year
@@ -421,175 +401,53 @@ ggplot(County_PM2.5_Transportation_Data) +
 
 ```
 
-#Model 2: Random Forest
-```{r}
-library(randomForest)
 
-# Remove rows with missing values
-County_PM2.5_Transportation_Data1 <- na.omit(County_PM2.5_Transportation_Data)
-
-# Split data into training and testing sets [80-20]
-set.seed(123)  # For reproducibility
-train_indices <- sample(nrow(County_PM2.5_Transportation_Data1), 0.8 * nrow(County_PM2.5_Transportation_Data1))
-train_data <- County_PM2.5_Transportation_Data1[train_indices, ]
-train_data <- na.omit(train_data)
-test_data <- County_PM2.5_Transportation_Data1[-train_indices, ]
-test_data <- na.omit(test_data)
-
-# Case 1: Looking at all the vehicles
-rf_model_all_vehicles <- randomForest(train_data$PM2.5_Avg ~ train_data$VEHICLES + factor(train_data$COUNTY), data = train_data)
-print(rf_model_all_vehicles)
-
-# Predict PM2.5 levels on test data
-predicted_PM2.5_all_vehicles <- predict(rf_model_all_vehicles, newdata = test_data)
-
-# Evaluate model performance (e.g., mean squared error)
-mse_all_vehicles <- mean((predicted_PM2.5_all_vehicles - test_data$PM2.5_Avg)^2)
-print(paste("Mean Squared Error (All Vehicles):", mse_all_vehicles))
-
-# Case 2: Looking specifically at Gas, Diesel, and Electric Vehicles
-rf_model_gde <- randomForest(PM2.5_Avg ~ GAS + DIESEL + ELECTRIC + factor(COUNTY), data = train_data)
-print(rf_model_gde)
-
-# Predict PM2.5 levels on test data
-predicted_PM2.5_gde <- predict(rf_model_gde, newdata = test_data)
-
-# Evaluate model performance
-mse_gde <- mean((predicted_PM2.5_gde - test_data$PM2.5_Avg)^2)
-print(paste("Mean Squared Error (Gas, Diesel, Electric):", mse_gde))
-
-# Case 3: Looking specifically at Diesel Vehicles
-rf_model_diesel <- randomForest(PM2.5_Avg ~ DIESEL + factor(COUNTY), data = train_data)
-print(rf_model_diesel)
-
-# Predict PM2.5 levels on test data
-predicted_PM2.5_diesel <- predict(rf_model_diesel, newdata = test_data)
-
-# Evaluate model performance
-mse_diesel <- mean((predicted_PM2.5_diesel - test_data$PM2.5_Avg)^2)
-print(paste("Mean Squared Error (Diesel Vehicles):", mse_diesel))
-
-
-
-
-```
-
-#Model 3: Ridge
+#Model 2: Ridge
 ```{r}
 # Install and load the glmnet package
 library(glmnet)
 
-#Trial_all
 # Prepare the predictor matrix
-x <- model.matrix(~. -1, data = allegheny_data %>% select(GAS, DIESEL, ELECTRIC, PROPANE, HYBRID, OTHER, NATURAL.GAS, COMP.GAS, FLEX.FUEL))
-y <- allegheny_data$PM2.5_Avg
+x_all <- model.matrix(~ VEHICLES + factor(COUNTY) + factor(YEAR), data = County_PM2.5_Transportation_Data1)
+y_all <- County_PM2.5_Transportation_Data1$PM2.5_Avg
 
 # Perform cross-validated ridge regression
-ridge_model_all <- cv.glmnet(x, y, alpha = 0)
+ridge_model_all <- cv.glmnet(x_all, y_all, alpha = 0)
 best_lambda_all <- ridge_model_all$lambda.min
-final_model_all <- glmnet(x, y, alpha = 0, lambda = best_lambda_all)
+final_model_all <- glmnet(x_all, y_all, alpha = 0, lambda = best_lambda_all)
 
 # Extract coefficients
 coefficients_all <- coef(final_model_all)
 
 # Predict PM2.5 levels
-predicted_PM2.5_all <- predict(final_model_all, newx = x)
+predicted_PM2.5_all <- predict(final_model_all, newx = x_all)
 
 # Calculate mean squared error
-mse_all <- mean((predicted_PM2.5_all - y)^2)
+mse_all <- mean((predicted_PM2.5_all - y_all)^2)
 
 # Print results
 print(coefficients_all)
 print(mse_all)
 
-# Case 1: Looking at all the vehicles
-# Prepare the predictor matrix
-x <- model.matrix(~. -1, data = allegheny_data %>% select(VEHICLES))
-y <- allegheny_data$PM2.5_Avg
-
-# Perform cross-validated ridge regression
-ridge_model_all_vehicles <- cv.glmnet(x, y, alpha = 0)
-best_lambda_all_vehicles <- ridge_model_all_vehicles$lambda.min
-final_model_all_vehicles <- glmnet(x, y, alpha = 0, lambda = best_lambda_all_vehicles)
-
-# Extract coefficients
-coefficients_all_vehicles <- coef(final_model_all_vehicles)
-
-# Predict PM2.5 levels
-predicted_PM2.5_all_vehicles <- predict(final_model_all_vehicles, newx = x)
-
-# Calculate mean squared error
-mse_all_vehicles <- mean((predicted_PM2.5_all_vehicles - y)^2)
-
-# Print results
-print(coefficients_all_vehicles)
-print(mse_all_vehicles)
-
-# Case 2: Looking specifically at Gas, Diesel, and Electric Vehicles
-# Prepare the predictor matrix
-x <- model.matrix(~. -1, data = allegheny_data %>% select(GAS, DIESEL, ELECTRIC))
-y <- allegheny_data$PM2.5_Avg
-
-# Perform cross-validated ridge regression
-ridge_model_gde <- cv.glmnet(x, y, alpha = 0)
-best_lambda_gde <- ridge_model_gde$lambda.min
-final_model_gde <- glmnet(x, y, alpha = 0, lambda = best_lambda_gde)
-
-# Extract coefficients
-coefficients_gde <- coef(final_model_gde)
-
-# Predict PM2.5 levels
-predicted_PM2.5_gde <- predict(final_model_gde, newx = x)
-
-# Calculate mean squared error
-mse_gde <- mean((predicted_PM2.5_gde - y)^2)
-
-# Print results
-print(coefficients_gde)
-print(mse_gde)
-summary(final_model_gde)
-
-# Case 3: Looking specifically at Diesel Vehicles
-# Prepare the predictor matrix
-x <- model.matrix(~. -1, data = allegheny_data %>% select(DIESEL))
-y <- allegheny_data$PM2.5_Avg
-
-# Perform cross-validated ridge regression
-ridge_model_diesel <- cv.glmnet(x, y, alpha = 0)
-best_lambda_diesel <- ridge_model_diesel$lambda.min
-final_model_diesel <- glmnet(x, y, alpha = 0, lambda = best_lambda_diesel)
-
-# Extract coefficients
-coefficients_diesel <- coef(final_model_diesel)
-
-# Predict PM2.5 levels
-predicted_PM2.5_diesel <- predict(final_model_diesel, newx = x)
-
-# Calculate mean squared error
-mse_diesel <- mean((predicted_PM2.5_diesel - y)^2)
-
-# Print results
-print(coefficients_diesel)
-print(mse_diesel)
-
+#Carry out the same 3 cases as in the Linear Regression Model by changing features in the first line 511
 ```
-#Model 4: Lasso
+#Model 3: Lasso
 ```{r}
-#Trial_all
+
 # Prepare the predictor matrix
-x <- model.matrix(~. -1, data = allegheny_data %>% select(GAS, DIESEL, ELECTRIC, PROPANE, HYBRID, OTHER, NATURAL.GAS, COMP.GAS, FLEX.FUEL))
-y <- allegheny_data$PM2.5_Avg
+x_all <- model.matrix(~ DIESEL + factor(COUNTY) + factor(YEAR), data = County_PM2.5_Transportation_Data1)
+y_all <- County_PM2.5_Transportation_Data1$PM2.5_Avg
 
 # Perform cross-validated lasso regression
-lasso_model_all <- cv.glmnet(x, y, alpha = 1)
+lasso_model_all <- cv.glmnet(x_all, y_all, alpha = 1)
 best_lambda_all <- lasso_model_all$lambda.min
-final_model_all <- glmnet(x, y, alpha = 1, lambda = best_lambda_all)
+final_model_all <- glmnet(x_all, y_all, alpha = 1, lambda = best_lambda_all)
 
 # Extract coefficients
 coefficients_all <- coef(final_model_all)
 
 # Predict PM2.5 levels
-predicted_PM2.5_all <- predict(final_model_all, newx = x)
+predicted_PM2.5_all <- predict(final_model_all, newx = x_all)
 
 # Calculate mean squared error
 mse_all <- mean((predicted_PM2.5_all - y)^2)
@@ -598,36 +456,6 @@ mse_all <- mean((predicted_PM2.5_all - y)^2)
 print(coefficients_all)
 print(mse_all)
 
-#Just GDE
-# Prepare the predictor matrix
-x <- model.matrix(~. -1, data = allegheny_data %>% select(GAS, DIESEL, ELECTRIC))
-y <- allegheny_data$PM2.5_Avg
+#Carry out the same 3 cases as in the Linear Regression Model by changing features in the first line 538
 
-# Perform cross-validated lasso regression
-lasso_model_all <- cv.glmnet(x, y, alpha = 1)
-best_lambda_all <- lasso_model_all$lambda.min
-final_model_all <- glmnet(x, y, alpha = 1, lambda = best_lambda_all)
-
-# Extract coefficients
-coefficients_all <- coef(final_model_all)
-
-# Predict PM2.5 levels
-predicted_PM2.5_all <- predict(final_model_all, newx = x)
-
-# Calculate mean squared error
-mse_all <- mean((predicted_PM2.5_all - y)^2)
-
-# Print results
-print(coefficients_all)
-print(mse_all)
 ```
-
-
-# Analysis (interpretation)
-
-
-
-# Conclusions and Future Work
-
-
-
