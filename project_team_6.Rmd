@@ -350,7 +350,7 @@ mse_allegheny_GDE <- mean((predicted_PM2.5_allegheny_GDE - test_data$PM2.5_Avg)^
 print(mse_allegheny_GDE)
 
 # Predict PM2.5 levels for different number of cars in Allegheny County
-predicted_PM2.5 <- predict(GDE, newdata = data.frame(GAS = c(811383, 811384), DIESEL = c(20091, 20092), ELECTRIC = c(4574,4575), COUNTY = "Allegheny"))
+predicted_PM2.5 <- predict(GDE, newdata = data.frame(GAS = c(811383, 811384), DIESEL = c(20091, 20092), ELECTRIC = c(4574,4575), COUNTY = "Allegheny", YEAR = "2022"))
 
 # Calculate PM2.5 values for an addition of 1 gas, 1 diesel and 1 electric car
 difference <- predicted_PM2.5[2] - predicted_PM2.5[1]
@@ -368,11 +368,55 @@ mse_allegheny_diesel <- mean((predicted_PM2.5_allegheny_diesel - test_data$PM2.5
 print(mse_allegheny_diesel)
 
 # Predict PM2.5 levels for different number of cars in Allegheny County
-predicted_PM2.5 <- predict(Diesel_Cars, newdata = data.frame(DIESEL = c(20091, 20092), COUNTY = "Allegheny"))
+predicted_PM2.5 <- predict(Diesel_Cars, newdata = data.frame(DIESEL = c(20091, 20092), COUNTY = "Allegheny", YEAR = "2022"))
 
 # Calculate the difference between predicted PM2.5 values to get the PM2.5 for an addition of 1 diesel car
 difference <- predicted_PM2.5[2] - predicted_PM2.5[1]
 print(difference)
+
+
+#k-fold Cross validation
+# Load the caret package
+library(caret)
+County_PM2.5_Transportation_Data <- na.omit(County_PM2.5_Transportation_Data)
+
+# Define the number of folds for cross-validation
+num_folds <- 10
+
+# Define the control parameters for cross-validation
+train_control <- trainControl(method = "cv",   # Use k-fold cross-validation
+                              number = num_folds)  # Number of folds
+
+# Case 1: Looking at all the vehicles
+# Train the model on the entire data-set using k-fold cross-validation
+AllVehicles_cv <- train(PM2.5_Avg ~ VEHICLES + factor(COUNTY) + factor(YEAR),
+                        data = County_PM2.5_Transportation_Data,
+                        method = "lm",
+                        trControl = train_control)
+
+# Print the results
+print(AllVehicles_cv)
+
+# Case 2: Looking specifically at Gas, Diesel, and Electric Vehicles
+# Train the model on the entire data-set using k-fold cross-validation
+GDE_cv <- train(PM2.5_Avg ~ GAS + DIESEL + ELECTRIC + factor(COUNTY) + factor(YEAR),
+                data = County_PM2.5_Transportation_Data,
+                method = "lm",
+                trControl = train_control)
+
+# Print the results
+print(GDE_cv)
+
+# Case 3: Looking specifically at Diesel Vehicles
+# Train the model on the entire data-set using k-fold cross-validation
+Diesel_Cars_cv <- train(PM2.5_Avg ~ DIESEL + factor(COUNTY) + factor(YEAR),
+                        data = County_PM2.5_Transportation_Data,
+                        method = "lm",
+                        trControl = train_control)
+
+# Print the results
+print(Diesel_Cars_cv)
+
 
 
 # Visualizing Gas vs. PM2.5_Avg with color based on year
@@ -406,6 +450,8 @@ ggplot(County_PM2.5_Transportation_Data) +
 ```{r}
 # Install and load the glmnet package
 library(glmnet)
+
+County_PM2.5_Transportation_Data1 <- na.omit(County_PM2.5_Transportation_Data)
 
 # Prepare the predictor matrix
 x_all <- model.matrix(~ VEHICLES + factor(COUNTY) + factor(YEAR), data = County_PM2.5_Transportation_Data1)
